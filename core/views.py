@@ -1,116 +1,18 @@
 # Create your views here.
-from django.shortcuts import render
-from django.shortcuts import render, HttpResponse, redirect
-from .forms import CustomUserForm
-from django.contrib.auth.decorators import login_required, permission_required
-from django.contrib.auth import login, authenticate
-
+from django.contrib.auth import login, authenticate, logout
+from django.shortcuts import render, HttpResponse, redirect, get_object_or_404
+from .forms import AsistenciaForm, HorariosForm, VacacionesForm, ReportesForm, DiasForm
+from .models import Horario, Semana
 # Create your views here.
+from django.contrib.auth.decorators import login_required
 
 
-html_base = """
-    <h1>Mi Primer Menu</h1>
-     <ul>
-        <li>   <a href="/">Ingreso al Sistema</a>              </li>
-        <li>   <a href="/empleados/">Ingreso de empleados</a>   </li>
-        <li>   <a href="/horario/">Ingreso de horario</a>     </li>
-        <li>   <a href="/modificacion/">Modificacion de horario</a>     </li>
-        <li>   <a href="/asistencia/">Ingreso de Asistencia</a>     </li>
-
-    </ul>
-"""
-
-
-def home(request):
-    html_response = "<h1>Mi sistema</h1>"
-    for i in range(10):
-        html_response += "<h2>Portada</h2>"
-    return HttpResponse(html_response);
-
-
-# relaciona la parte vista con el template home.html
-
-
-def home(request):
-    html_responsde = "<h1>la pagina de ingreso al sistema</h1>"
-    html_responsde = html_base + html_responsde
-    return HttpResponse(html_responsde);
-
-
-def empleado(request):
-    html_responsde = "<h1>EMPLEADOS </h1>"
-    html_responsde = html_base + html_responsde
-    return HttpResponse(html_responsde);
-
-
-def horario(request):
-    html_responsde = "<h1>HORARIO</h1>"
-    html_responsde = html_base + html_responsde
-    return HttpResponse(html_responsde);
-
-
-def modificacion(request):
-    html_responsde = "<h1>Modificacion</h1>"
-    html_responsde = html_base + html_responsde
-    return HttpResponse(html_responsde);
-
-
-def asistencia(request):
-    html_responsde = "<h1>Asistencia</h1>"
-    html_responsde = html_base + html_responsde
-    return HttpResponse(html_responsde);
-
-
-def registro_docente(request):
-    html_responsde = "<h1>Registro de docente</h1>"
-    html_responsde = html_base + html_responsde
-    return HttpResponse(html_responsde);
-
-
-def modificaciona(request):
-    html_responsde = "<h1>Registro de docente</h1>"
-    html_responsde = html_base + html_responsde
-    return HttpResponse(html_responsde);
-
-
-def reporte(request):
-    html_responsde = "<h1>REPORTE</h1>"
-    html_responsde = html_base + html_responsde
-    return HttpResponse(html_responsde);
-
-
-def vacaciones(request):
-    html_responsde = "<h1>VACACIONES</h1>"
-    html_responsde = html_base + html_responsde
-    return HttpResponse(html_responsde);
-
-
-def home(request, plantilla="home.html"):
-    return render(request, plantilla);
-
-
-def empleados(request, plantilla="empleados.html"):
-    return render(request, plantilla);
-
-
-def horario(request, plantilla="horario.html"):
-    return render(request, plantilla);
-
-
-def modificacion(request, plantilla="modificacion.html"):
-    return render(request, plantilla);
-
-
-def asistencia(request, plantilla="asistencia.html"):
-    return render(request, plantilla);
-
-
-def registro_docente(request, plantilla="registro_docente.html"):
-    return render(request, plantilla);
-
-
-def modificaciona(request, plantilla="registro_docente.html"):
-    return render(request, plantilla);
+@login_required(None, "", 'login')
+def home(request, plantilla ="home.html"):
+    if request.user.is_authenticated:
+        return render(request, plantilla)
+        # En otro caso redireccionamos al login
+    return redirect('login')
 
 
 def reporte(request, plantilla="reporte.html"):
@@ -121,19 +23,99 @@ def vacaciones(request, plantilla="vacaciones.html"):
     return render(request, plantilla);
 
 
-def registro_docente(request):
-    data = {
-        'form': CustomUserForm()
-    }
-    if request.method =='POST':
-        formulario = CustomUserForm(request.POST)
-        if formulario.is_valid():
-            formulario.save()
-            #autenticar al usuario y redigir al inicio
-            username = formulario.cleaned_data['username']
-            password = formulario.cleaned_data['password1']
-            user = authenticate(username=username, password=password)
-            login(request, user)
-            return redirect(to='home')
+def asistencia(request, plantilla="asistencia.html"):
+    if request.method == 'POST':
+        asistenciasForm = AsistenciaForm(request.POST)
+        if asistenciasForm.is_valid():
+            asistenciasForm.save()
+            return redirect("asistecias")
+        else:
+            asistenciasForm = AsistenciaForm()
+        return render(request, plantilla, {'form': AsistenciaForm})
+    return render(request, 'asistencia.html')
 
-    return render(request, 'registro_docente.html', data)
+
+def vacaciones(request, plantilla="vacaciones.html"):
+    if request.method == 'POST':
+        vacacionesForm = VacacionesForm(request.POST)
+        if vacacionesForm.is_valid():
+            vacacionesForm.save()
+            return redirect("vacaciones")
+        else:
+            vacacionesForm = VacacionesForm()
+        return render(request, plantilla, {'form': VacacionesForm})
+    return render(request, 'vacaciones.html')
+
+
+def reporte(request, plantilla="reporte.html"):
+    if request.method == 'POST':
+        reporteForm = ReportesForm(request.POST)
+        if reporteForm.is_valid():
+            reporteForm.save()
+            return redirect("reporte")
+        else:
+            reporteForm = ReportesForm()
+        return render(request, plantilla, {'reporteform': reporteForm})
+    return render(request, 'reporte.html')
+
+
+@login_required(None, "", 'login')
+def crearhorario(request, plantilla="horario/crearhorario.html"):
+    if request.method == 'POST':
+        horarioForm = HorariosForm(request.POST)
+        if horarioForm.is_valid():
+            horarioForm.save()
+            return redirect("horario")
+    else:
+        horarioForm = HorariosForm()
+    return render(request, plantilla, {'horarioform': horarioForm})
+
+
+@login_required(None, "", 'login')
+def horario(request, plantilla="horario/horario.html"):
+    horarios = list(Horario.objects.all())
+    return render(request, plantilla, {'horarios': horarios})
+
+
+@login_required(None, "", 'login')
+def horariomod(request, pk, plantilla="horario/horariomod.html"):
+    if request.method == "POST":
+        horario = get_object_or_404(Horario, pk=pk)
+        horarioform = HorariosForm(request.POST or None, instance=horario)
+        if horarioform.is_valid():
+            horarioform.save()
+        return redirect("horario")
+    else:
+        horario= get_object_or_404(Horario, pk=pk)
+        horarioform = HorariosForm(request.POST or None, instance=horario)
+        return render(request, plantilla, {'horarioform': horarioform})
+
+
+@login_required(None, "", 'login')
+def horarioelim(request, pk,  plantilla="horario/horarioelim.html"):
+    if request.method == "POST":
+        horario = get_object_or_404(Horario, pk=pk)
+        horarioForm = HorariosForm(request.POST or None, instance=horario)
+        if horarioForm.is_valid():
+            horario.delete()
+        return redirect("horario")
+    else:
+        horario = get_object_or_404(Horario, pk=pk)
+        horarioForm = HorariosForm(request.POST or None, instance=horario)
+    return render(request, plantilla, {'horarioForm': horarioForm})
+
+
+def dias(request, plantilla="Dia.html"):
+    if request.method == 'POST':
+        dia = DiasForm(request.POST)
+        if dia.is_valid():
+            dia.save()
+            return redirect(dias)
+    else:
+        dia = DiasForm()
+    return render(request, plantilla, {'formulario': dia})
+
+
+def dias(request, plantilla="Dia.html"):
+    dias = list(Semana.objects.all())
+    return render(request, plantilla, {'dias': dias})
